@@ -27,10 +27,25 @@ class MainPage(Handler):
     def get(self):
         self.render("root.html")
 
+##################  olympiad-problem-classifier ########################
+
+import classifier
+
+class Olympiad_problem_classifier(Handler):
+	def get(self):
+		self.render("olympiad_problem_classifier.html",
+					statement = "Every even integer greater than 2 can be expressed as the sum of two primes.",
+					message = [""])
+	def post(self):
+		statement = self.request.get("statement")
+		message = classifier.classify_statement(statement)
+		self.render("olympiad_problem_classifier.html",statement = statement, message = message)
+
 ############################ Handlers ##################################
 
 application = webapp2.WSGIApplication([
     ('/', MainPage),
+    ('/olympiad_problem_classifier',Olympiad_problem_classifier)
 ], debug=True)
 
 ########################################################################
