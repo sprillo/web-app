@@ -41,11 +41,19 @@ class Olympiad_problem_classifier(Handler):
 		message = classifier.classify_statement(statement)
 		self.render("olympiad_problem_classifier.html",statement = statement, message = message)
 
+######################### /robots.txt ##################################
+
+class Robots(Handler):
+	def get(self):
+		self.response.headers['Content-Type'] = 'text/plain'
+		self.render("robots.html")
+
 ############################ Handlers ##################################
 
 application = webapp2.WSGIApplication([
     ('/', MainPage),
-    ('/olympiad_problem_classifier',Olympiad_problem_classifier)
+    ('/olympiad_problem_classifier',Olympiad_problem_classifier),
+    ('/robots.txt',Robots)
 ], debug=True)
 
 ########################################################################
