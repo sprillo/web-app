@@ -31,10 +31,20 @@
 
 	<form method = "post">
 		<textarea name = "stringNotes" rows="10" cols="80">{{stringNotes}}</textarea>
+		<br><br>
+		Try playing with these two model parameters. It might make the Auto Tabber produce better results.
+		<br>
+		New phrase penalty: <input type="text" name="phrasePenalty" value = "{{phrasePenalty}}"> (Default = 10) <br>
+		Pinky penalty: <input type="text" name="pinkyPenalty" value = "{{pinkyPenalty}}"> (Default = 1) <br>
+		<br>
+		<b>New phrase penalty:</b> This is how much Auto Tabber will penalize starting new phases. If you set this to 0 it will think every note is a phrase and there will be a lot of left hand movement. If you set this to 1000 it will try to fit all the piece into one phrase and there will be very little left hand movement.
+		<br><br>
+		<b>Pinky penalty:</b> This is how much the model penalizes using the pinky.
 		<br>
 		<br>
 		<input type = "submit">
 	</form>
+	
 
 	<br><br>
 

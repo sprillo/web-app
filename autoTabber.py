@@ -151,7 +151,7 @@ def computeTransitionLogLikelihood(state1, state2):
 	# TODO: Open strings do not require any finger check (but should probably be penalized slightly to avoid abusing them)
 	badness = 0
 	# It is important to know if the notes are played at the same time
-	sameTime = (state1.time == state1.time)
+	sameTime = (state1.time == state2.time)
 	############################ Same Phrase ###########################
 	# Force fingers to stick to their frets
 	fretOffset = state2.fret - state1.fret
@@ -167,14 +167,14 @@ def computeTransitionLogLikelihood(state1, state2):
 	if fretFingerOffset != 0:
 		badness = Graph.INF
 	# No string skipping beyond 1, UNLESS AT THE SAME TIME
-	if not sameTime and abs(state1.stringLevel - state2.stringLevel) >= 3:
+	if (not sameTime) and abs(state1.stringLevel - state2.stringLevel) >= 3:
 		badness = Graph.INF
 	# Penalize string skipping slightly =======================================> I'm only using this to fix border notes between two phrases. (E.G. in Stairway to Heaven, between phrases 2 and 3)
 	WEIGHT_TWO_STRING_JUMP = 0.1
 	if abs(state1.stringLevel - state2.stringLevel) == 2:
 		badness += WEIGHT_TWO_STRING_JUMP
 	# Penalize pinky
-	WEIGHT_PINKY_BADNESS = 1
+	WEIGHT_PINKY_BADNESS = Graph.WEIGHT_PINKY_BADNESS # made 'Global'
 	if state2.finger == 4:
 		badness += WEIGHT_PINKY_BADNESS
 	# Avoid the upper quadrant area
@@ -182,15 +182,22 @@ def computeTransitionLogLikelihood(state1, state2):
 	if state2.stringLevel >= 4 and state2.fret >= 15:
 		badness += WEIGHT_UPPER_QUADRANT
 	########################### New Phrase #############################
-	NEW_PHRASE_BADNESS = 10
+	NEW_PHRASE_BADNESS = Graph.NEW_PHRASE_BADNESS # made 'Global'
 	if state2.phrase == 1 - state1.phrase:
 		badness = NEW_PHRASE_BADNESS
 	return -badness
 
 class Graph:
+	# Global parameters
+	NEW_PHRASE_BADNESS = 10
+	WEIGHT_PINKY_BADNESS = 1
 	BEFORE = 0
 	AFTER = 1
 	INF = 100000000
+	@classmethod
+	def setPenalties(cls,phrasePenalty,pinkyPenalty):
+		cls.NEW_PHRASE_BADNESS = phrasePenalty
+		cls.WEIGHT_PINKY_BADNESS = pinkyPenalty
 	def __init__(self, graphStates):
 		self.graphStates = graphStates
 		self.resizeGraph(graphStates)
@@ -346,12 +353,14 @@ def neatPrint(states,filename = ""):
 	else:
 		print(outputStr)
 
-def autoTab(stringNotes):
+def autoTab(stringNotes,phrasePenalty,pinkyPenalty):
 	#~ print("Processing stringNotes:\n%s"%stringNotes)
+	Graph.setPenalties(int(phrasePenalty),int(pinkyPenalty))
 	gs = buildGraphStatesFromStringNotes(stringNotes)
 	g = Graph(gs)
 	bestStates = g.bestStates()
 	res = getOutputStringHTML(bestStates)
+	print([str(state) for state in bestStates])
 	#~ print("Returning tab:\n%s"%res)
 	return [res]
 

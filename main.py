@@ -49,11 +49,21 @@ class Auto_tabber(Handler):
 	def get(self):
 		self.render("auto_tabber.html",
 					stringNotes = "D7 G5 B5 e5 D6e7 B5 G5 e7 D5e8 B5 G5 e8 D4e2 B3 G2 e2 D3e0 B1 G2 B1 e0 B1 G2 A2G0B0 A0G2B1 A0G2B1",
+					phrasePenalty = "10",
+					pinkyPenalty = "1",
 					message = [""])
 	def post(self):
 		stringNotes = self.request.get("stringNotes")
-		message = autoTabber.autoTab(stringNotes)
-		self.render("auto_tabber.html",stringNotes = stringNotes, message = message)
+		phrasePenalty = self.request.get("phrasePenalty")
+		pinkyPenalty = self.request.get("pinkyPenalty")
+		print("phrasePenalty = %s"%phrasePenalty)
+		print("pinkyPenalty = %s"%pinkyPenalty)
+		message = autoTabber.autoTab(stringNotes,phrasePenalty,pinkyPenalty)
+		self.render("auto_tabber.html",
+					stringNotes = stringNotes,
+					phrasePenalty = phrasePenalty,
+					pinkyPenalty = pinkyPenalty,
+					message = message)
 
 ######################### /robots.txt ##################################
 
