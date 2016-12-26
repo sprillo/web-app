@@ -41,6 +41,20 @@ class Olympiad_problem_classifier(Handler):
 		message = classifier.classify_statement(statement)
 		self.render("olympiad_problem_classifier.html",statement = statement, message = message)
 
+#########################  AutoTabber ##################################
+
+import autoTabber
+
+class Auto_tabber(Handler):
+	def get(self):
+		self.render("auto_tabber.html",
+					stringNotes = "D7 G5 B5 e5 D6e7 B5 G5 e7 D5e8 B5 G5 e8 D4e2 B3 G2 e2 D3e0 B1 G2 B1 e0 B1 G2 A2G0B0 A0G2B1 A0G2B1",
+					message = [""])
+	def post(self):
+		stringNotes = self.request.get("stringNotes")
+		message = autoTabber.autoTab(stringNotes)
+		self.render("auto_tabber.html",stringNotes = stringNotes, message = message)
+
 ######################### /robots.txt ##################################
 
 class Robots(Handler):
@@ -53,6 +67,7 @@ class Robots(Handler):
 application = webapp2.WSGIApplication([
     ('/', MainPage),
     ('/olympiad_problem_classifier',Olympiad_problem_classifier),
+    ('/auto_tabber',Auto_tabber),
     ('/robots.txt',Robots)
 ], debug=True)
 
