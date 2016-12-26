@@ -262,39 +262,40 @@ class Graph:
 			state = self.graphStates[column][row]
 			res.append(state)
 		return res
-				
-#~ def getOutputString(states):
-	#~ n = max([state.time for state in states]) + 1
-	#~ tab = [[None for c in range(n)] for r in range(len(GuitarNote.allowedStrings))]
-	#~ for stateId in range(len(states)):
-		#~ state = states[stateId]
-		#~ stringLevel = state.stringLevel
-		#~ column = state.time
-		#~ tab[stringLevel - 1][column] = str(state.fret)
-	#~ # Agregar '\t|' entre dos frases
-	#~ endPhrase = [False] * n
-	#~ for stateId in range(len(states) - 1):
-		#~ state1 = states[stateId]
-		#~ time = state1.time
-		#~ state2 = states[stateId + 1]
-		#~ if state1.phrase != state2.phrase:
-			#~ endPhrase[time] = True
-	#~ for column in range(n):
-		#~ if endPhrase[column]:
-			#~ for row in range(len(GuitarNote.allowedStrings)):
-				#~ if tab[row][column] is None:
-					#~ tab[row][column] = '\t|'
-				#~ else:
-					#~ tab[row][column] += '\t|'
-	#~ outputStr = ""
-	#~ for row in range(len(GuitarNote.allowedStrings)):
-		#~ outputStr += GuitarNote.allowedStrings[row] + ":\t"
-		#~ for column in range(n):
-			#~ if tab[row][column] is not None:
-				#~ outputStr += str(tab[row][column])
-			#~ outputStr += "\t"
-		#~ outputStr += "\n"
-	#~ return outputStr
+		
+# For local run as when written		
+def getOutputString(states):
+	n = max([state.time for state in states]) + 1
+	tab = [[None for c in range(n)] for r in range(len(GuitarNote.allowedStrings))]
+	for stateId in range(len(states)):
+		state = states[stateId]
+		stringLevel = state.stringLevel
+		column = state.time
+		tab[stringLevel - 1][column] = str(state.fret)
+	# Agregar '\t|' entre dos frases
+	endPhrase = [False] * n
+	for stateId in range(len(states) - 1):
+		state1 = states[stateId]
+		time = state1.time
+		state2 = states[stateId + 1]
+		if state1.phrase != state2.phrase:
+			endPhrase[time] = True
+	for column in range(n):
+		if endPhrase[column]:
+			for row in range(len(GuitarNote.allowedStrings)):
+				if tab[row][column] is None:
+					tab[row][column] = '\t|'
+				else:
+					tab[row][column] += '\t|'
+	outputStr = ""
+	for row in range(len(GuitarNote.allowedStrings)):
+		outputStr += GuitarNote.allowedStrings[row] + ":\t"
+		for column in range(n):
+			if tab[row][column] is not None:
+				outputStr += str(tab[row][column])
+			outputStr += "\t"
+		outputStr += "\n"
+	return outputStr
 
 def getOutputStringHTML(states):
 	n = max([state.time for state in states]) + 1
