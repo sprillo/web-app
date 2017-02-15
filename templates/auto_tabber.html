@@ -6,41 +6,29 @@
 	</head>
 	
 	<body>
-		Welcome to my guitar Auto Tabber!
+		Welcome to our guitar Auto Tabber tool!
 	</body>
 
 	<br><br>
-
-	Enter the notes below, in GUITAR FORMAT (see example input below).
-	<br>
-	Please note that the only reason why guitar format is required is because it is the most confortable format to test the app; the app does not 'cheat'.
-	<br>
-	Once you input the notes, click the "Submit" button to run the Auto Tabber.
-	<br>
-	The Auto Tabber will try to find a decent arrangement for the given score on guitar. Furthermore, it will try to split the notes into phrases for clarity.
-	<br>
-	The Auto Tabber uses a Probabilistic Graphical Model (more precisely, a Hidden Markov Model) to find the best arragement it can.
-	<br>
-	Please note, I only spent two days working on this project, it doesn't have much testing. It might do weird things! In particular, the Auto Tabber does not support bends, hammer-ons, pull-offs, harmonics or tapping. It only goes as far as the example below.
-	<br>
-	Check the code at: https://github.com/sprillo/web-app/blob/master/autoTabber.py
-	<br>
-	NOTE: When several notes are played at the same time, input them in order from lowest to highest string.
-	
+	You can find the code at: https://github.com/sprillo/web-app/blob/master/autoTabber.py
+	<br><br>
+	You can find sample inputs at <a href="/auto_tabber_samples">here</a>. Try copying and pasting them below.
 	<br><br>
 
 	<form method = "post">
-		<textarea name = "stringNotes" rows="10" cols="80">{{stringNotes}}</textarea>
+		<textarea name = "stringGuitarNotes" rows="10" cols="80">{{stringGuitarNotes}}</textarea>
 		<br><br>
-		Try playing with these two model parameters. It might make the Auto Tabber produce better results.
+		Try playing with these model parameters. It might make the Auto Tabber produce better results for your specific tab.
 		<br>
-		New phrase penalty: <input type="text" name="phrasePenalty" value = "{{phrasePenalty}}"> (Default = 10) <br>
-		Pinky penalty: <input type="text" name="pinkyPenalty" value = "{{pinkyPenalty}}"> (Default = 1) <br>
+		Pinky penalty: <input type="text" name="wPinky" value = "{{wPinky}}"> (Default = 1) <br>
+		Index Finger Position Penalty: <input type="text" name="wIndexFingerPosition" value = "{{wIndexFingerPosition}}"> (Default = 0.1) <br>
+		Fretted Note Penalty: <input type="text" name="wIsFretted" value = "{{wIsFretted}}"> (Default = 1) <br>
+		New Phrase Offset Penalty: <input type="text" name="wIFPDelta" value = "{{wIFPDelta}}"> (Default = 2) <br>	
 		<br>
-		<b>New phrase penalty:</b> This is how much Auto Tabber will penalize starting new phases. If you set this to 0 it will think every note is a phrase and there will be a lot of left hand movement. If you set this to 1000 it will try to fit all the piece into one phrase and there will be very little left hand movement.
-		<br><br>
-		<b>Pinky penalty:</b> This is how much the model penalizes using the pinky.
+		Additionally, you can:
 		<br>
+		Show Finger Anotations: <input type="text" name="showFingerAnotations" value = "{{showFingerAnotations}}"> (Y/N, Default = N) <br>
+		Explain Score: <input type="text" name="explainScore" value = "{{explainScore}}"> (Y/N, Default = N) <br>
 		<br>
 		<input type = "submit">
 	</form>
@@ -49,5 +37,9 @@
 	<br><br>
 
 	{{message[0]|safe}}
+	
+	{{message[1]|safe}}
+	
+	{{message[2]|safe}}
 	
 </html>

@@ -16,14 +16,19 @@ class NoteFormatConverter:
 		return scoreNotes
 	def string_To_GuitarNotes(self, string):
 		res = []
-		stringNotes = string.rstrip().split(" ")
-		for time in range(len(stringNotes)):
-			stringNotesInCurrentTime = self.getStringNotes(stringNotes[time])
-			for stringNote in stringNotesInCurrentTime:
-				res.append(GuitarNote.fromString(stringNote,time))
+		stringGuitarNotes = string.rstrip().split(" ")
+		for time in range(len(stringGuitarNotes)):
+			stringGuitarNotesInCurrentTime = self.getstringGuitarNotes(stringGuitarNotes[time])
+			notesInCurrentTime = [GuitarNote.fromString(stringNote,time) for stringNote in stringGuitarNotesInCurrentTime]
+			# Sort Guitar Notes played at current time by pitch (so that all information conveyed by the input is destroyed, except for note pitch)
+			for i in range(len(notesInCurrentTime)):
+				for j in range(i,len(notesInCurrentTime)):
+					if notesInCurrentTime[i].getPitch() > notesInCurrentTime[j].getPitch():
+						notesInCurrentTime[i], notesInCurrentTime[j] = notesInCurrentTime[j], notesInCurrentTime[i]
+			for note in notesInCurrentTime:
+				res.append(note)
 		return res
-	def getStringNotes(self, string):
-		# need to parse this sh*t
+	def getstringGuitarNotes(self, string):
 		res = []
 		n = len(string)
 		left = 0
@@ -35,36 +40,31 @@ class NoteFormatConverter:
 			currentNote = string[left:right + 1]
 			res.append(currentNote)
 			left = right + 1
-		# Check notes are in order
-		for i in range(len(res) - 1):
-			stringNote1 = res[i][0]
-			stringNote2 = res[i + 1][0]
-			assert GuitarNote.stringLevel[stringNote1] > GuitarNote.stringLevel[stringNote2], "Notes played simultaneously should be provided in order"	
 		return res
 
 class ScoreNote:
 	@classmethod
 	def fromGuitarNote(cls,guitarNote):
-		return cls(GuitarNote.noteLevel[guitarNote.string] + guitarNote.fret, guitarNote.time)
-	def __init__(self,level,time):
-		self.level = level
+		return cls(GuitarNote.notePitch[guitarNote.string] + guitarNote.fret, guitarNote.time)
+	def __init__(self,pitch,time):
+		self.pitch = pitch
 		self.time = time
-	def level(self):
-		return self.level
+	def pitch(self):
+		return self.pitch
 	def __str__(self):
-		return str(self.level)
+		return str(self.pitch)
 
 class GuitarNote:
-	maxFrets = 21
+	maxFrets = 22
 	allowedStrings = ('e','B','G','D','A','E')
 	allowedFingers = (1,2,3,4)
-	noteLevel = dict()
-	noteLevel['E'] = 0
-	noteLevel['A'] = noteLevel['E'] + 5
-	noteLevel['D'] = noteLevel['A'] + 5
-	noteLevel['G'] = noteLevel['D'] + 5
-	noteLevel['B'] = noteLevel['G'] + 4
-	noteLevel['e'] = noteLevel['B'] + 5
+	notePitch = dict()
+	notePitch['E'] = 0
+	notePitch['A'] = notePitch['E'] + 5
+	notePitch['D'] = notePitch['A'] + 5
+	notePitch['G'] = notePitch['D'] + 5
+	notePitch['B'] = notePitch['G'] + 4
+	notePitch['e'] = notePitch['B'] + 5
 	stringLevel= dict()
 	stringLevel['E'] = 6
 	stringLevel['A'] = 5
@@ -79,7 +79,7 @@ class GuitarNote:
 		string = stringToConstructFrom[0]
 		fret = int(stringToConstructFrom[1:])
 		assert string in cls.allowedStrings, "inexistent string: %s"%string
-		assert 0 <= fret and fret <= cls.maxFrets, "fret is out of range: %i"%fret
+		#assert 0 <= fret and fret <= cls.maxFrets, "fret is out of range: %i"%fret #Downgrade this assert to allow e.g. 'E27E29E32'
 		return cls(string, fret, time)
 	def __init__(self, string, fret, time):
 		self.string = string
@@ -87,131 +87,129 @@ class GuitarNote:
 		self.time = time
 	def string(self):
 		return self.string
-	def getNoteLevel(self):
-		return noteLevel[self.string]
 	def fret(self):
 		return self.fret
 	def __str__(self):
 		#return str(self.string) + str(self.fret)
 		return str(self.stringLevel[self.string]) + "_" + str(self.fret)
+	def getPitch(self):
+		return GuitarNote.notePitch[self.string] + self.fret
 
 class State:
-	MAX_PHRASES = 2
-	def __init__(self, stringString, fret, finger, phrase, time):
+	def __init__(self, stringString, fret, finger, time):
+		assert stringString in GuitarNote.stringLevel
 		self.stringString = stringString
 		self.fret = fret
 		self.finger = finger
 		self.time = time
-		assert stringString in GuitarNote.stringLevel
 		self.stringLevel = GuitarNote.stringLevel[stringString]
-		self.phrase = phrase
 	def __str__(self):
-		return str(GuitarNote.stringLevel[self.stringString]) + "_" + str(self.fret) + "_f" + str(self.finger) + "_p" + str(self.phrase) + "_t" + str(self.time)
+		return str(GuitarNote.stringLevel[self.stringString]) + "_" + str(self.fret) + "_f" + str(self.finger) + "_t" + str(self.time)
+	def indexFingerPosition(self):
+		return self.fret + 1 - self.finger
+
+def sameIndexFingerPosition(state1,state2):
+	return state1.indexFingerPosition() == state2.indexFingerPosition()
 	
 def calculateCompatibleStates(scoreNote):
 	res = []
 	for string in GuitarNote.allowedStrings:
-		for fret in range(GuitarNote.maxFrets + 1):
+		fret = scoreNote.pitch - GuitarNote.notePitch[string]
+		if 0 <= fret and fret <= GuitarNote.maxFrets:
 			guitarNote = GuitarNote(string, fret, scoreNote.time)
-			if ScoreNote.fromGuitarNote(guitarNote).level == scoreNote.level:
-				for finger in GuitarNote.allowedFingers:
-					for phrase in range(State.MAX_PHRASES):
-						compatibleState = State(string, fret, finger, phrase, scoreNote.time)
-						res.append(compatibleState)
+			for finger in GuitarNote.allowedFingers:
+				compatibleState = State(string, fret, finger, scoreNote.time)
+				res.append(compatibleState)
 	return res
 
-def buildGraphStatesFromFilename(filename):
+def buildHiddenStatesFromFilename(filename):
 	c = NoteFormatConverter()
 	scoreNotes = c.filename_GuitarNotes_To_ScoreNotes(filename)
-	graphStates = buildGraphStatesFromScoreNotes(scoreNotes)
-	return graphStates
+	hiddenStates = buildHiddenStatesFromScoreNotes(scoreNotes)
+	return hiddenStates
 
-def buildGraphStatesFromScoreNotes(scoreNotes):
-	graphStates = []
+def buildHiddenStatesFromScoreNotes(scoreNotes):
+	hiddenStates = []
 	for scoreNote in scoreNotes:
 		# Determine all compatible states for this note
 		compatibleStates = calculateCompatibleStates(scoreNote)
-		graphStates.append(compatibleStates)
-	return graphStates
+		hiddenStates.append(compatibleStates)
+	return hiddenStates
 
-def buildGraphStatesFromStringNotes(stringNotes):
+def convertStringGuitarNotesToScoreNotes(stringGuitarNotes):
 	c = NoteFormatConverter()
-	guitarNotes = c.string_To_GuitarNotes(stringNotes)
+	guitarNotes = c.string_To_GuitarNotes(stringGuitarNotes)
 	scoreNotes = [ScoreNote.fromGuitarNote(guitarNote) for guitarNote in guitarNotes]
-	return buildGraphStatesFromScoreNotes(scoreNotes)
+	return scoreNotes
+
+def stateScore(state):
+	badness = 0
+	# Using the pinky has a cost.
+	if state.finger == 4:
+		badness += Graph.WEIGHT_PINKY
+	# Playing on higher frets has a cost
+	badness += state.indexFingerPosition() * Graph.WEIGHT_INDEX_FINGER_POSITION
+	# Open strings are easier to play
+	if state.fret != 0:
+		badness += Graph.WEIGHT_IS_FRETTED
+	return -badness
 
 def logPrior(state):
+	return stateScore(state)
+
+def moveScore(s1,s2):
 	badness = 0
-	WEIGHT_INITIAL_FRET = 0
-	badness += WEIGHT_INITIAL_FRET * state.fret
-	WEIGHT_INITIAL_STRING = 0
-	badness += WEIGHT_INITIAL_STRING * state.stringLevel
-	return -badness
-def computeTransitionLogLikelihood(state1, state2):
-	# TODO: Open strings do not require any finger check (but should probably be penalized slightly to avoid abusing them)
-	badness = 0
-	# It is important to know if the notes are played at the same time
-	sameTime = (state1.time == state2.time)
-	############################ Same Phrase ###########################
-	# Force fingers to stick to their frets
-	fretOffset = state2.fret - state1.fret
-	fingerOffset = state2.finger - state1.finger
-	fretFingerOffset = abs(fretOffset - fingerOffset)
-	#Only expection (for now): 3rd and pinky, if on same fret
-	ok = False
-	ok = ok or (fretFingerOffset == 0)
-	ok = ok or (state1.finger == 4 and state2.finger == 3 and state1.fret == state2.fret)
-	ok = ok or (state1.finger == 3 and state2.finger == 4 and state1.fret == state2.fret)
-	if not ok:
-		badness = Graph.INF
-	if fretFingerOffset != 0:
-		badness = Graph.INF
-	# No string skipping beyond 1, UNLESS AT THE SAME TIME
-	if (not sameTime) and abs(state1.stringLevel - state2.stringLevel) >= 3:
-		badness = Graph.INF
-	# Penalize string skipping slightly =======================================> I'm only using this to fix border notes between two phrases. (E.G. in Stairway to Heaven, between phrases 2 and 3)
-	WEIGHT_TWO_STRING_JUMP = 0.1
-	if abs(state1.stringLevel - state2.stringLevel) == 2:
-		badness += WEIGHT_TWO_STRING_JUMP
-	# Penalize pinky
-	WEIGHT_PINKY_BADNESS = Graph.WEIGHT_PINKY_BADNESS # made 'Global'
-	if state2.finger == 4:
-		badness += WEIGHT_PINKY_BADNESS
-	# Avoid the upper quadrant area
-	WEIGHT_UPPER_QUADRANT = 2
-	if state2.stringLevel >= 4 and state2.fret >= 15:
-		badness += WEIGHT_UPPER_QUADRANT
-	########################### New Phrase #############################
-	NEW_PHRASE_BADNESS = Graph.NEW_PHRASE_BADNESS # made 'Global'
-	if state2.phrase == 1 - state1.phrase:
-		badness = NEW_PHRASE_BADNESS
+	# same time => strings played bottom-up
+	if s1.time == s2.time and s1.stringLevel <= s2.stringLevel:
+		badness += Graph.INF
+	# Changing IFP has a cost
+	badness += abs(s1.indexFingerPosition() - s2.indexFingerPosition()) * Graph.WEIGHT_IFP_DELTA
 	return -badness
 
+def computeTransitionLogLikelihood(state1, state2):
+	score = moveScore(state1,state2) + stateScore(state2)
+	return score
+
+class Penalties:
+	def __init__(self,wPinky = 1,wIndexFingerPosition = 0.1,wIsFretted = 1,wIFPDelta = 2):
+		self.wPinky = wPinky
+		self.wIndexFingerPosition = wIndexFingerPosition
+		self.wIsFretted = wIsFretted
+		self.wIFPDelta = wIFPDelta
+		
 class Graph:
 	# Global parameters
-	NEW_PHRASE_BADNESS = 10
-	WEIGHT_PINKY_BADNESS = 1
+	WEIGHT_PINKY = 0
+	WEIGHT_INDEX_FINGER_POSITION = 0
+	WEIGHT_IS_FRETTED = 0
+	WEIGHT_IFP_DELTA = 0
 	BEFORE = 0
 	AFTER = 1
 	INF = 100000000
 	@classmethod
-	def setPenalties(cls,phrasePenalty,pinkyPenalty):
-		cls.NEW_PHRASE_BADNESS = phrasePenalty
-		cls.WEIGHT_PINKY_BADNESS = pinkyPenalty
-	def __init__(self, graphStates):
-		self.graphStates = graphStates
-		self.resizeGraph(graphStates)
+	def setPenalties(cls,penalties):
+		if hasattr(penalties, 'wPinky'):
+			cls.WEIGHT_PINKY = penalties.wPinky
+		if hasattr(penalties, 'wIndexFingerPosition'):
+			cls.WEIGHT_INDEX_FINGER_POSITION = penalties.wIndexFingerPosition
+		if hasattr(penalties, 'wIsFretted'):
+			cls.WEIGHT_IS_FRETTED = penalties.wIsFretted
+		if hasattr(penalties, 'wIFPDelta'):
+			cls.WEIGHT_IFP_DELTA = penalties.wIFPDelta
+	def __init__(self, hiddenStates):
+		self.hiddenStates = hiddenStates
+		self.resizeGraph(hiddenStates)
 		for column in range(self.columns - 1):
 			# Conectar los estados de esta capa con los de la siguiete
 			for rowBefore in range(self.columnSizes[column]):
 				for rowAfter in range(self.columnSizes[column + 1]):
-					transitionLogLikelihood = computeTransitionLogLikelihood(self.graphStates[column][rowBefore],self.graphStates[column + 1][rowAfter])
+					transitionLogLikelihood = computeTransitionLogLikelihood(self.hiddenStates[column][rowBefore],self.hiddenStates[column + 1][rowAfter])
 					self.g[column][rowBefore][self.AFTER][rowAfter] = transitionLogLikelihood
 					self.g[column + 1][rowAfter][self.BEFORE][rowBefore] = transitionLogLikelihood
-	def resizeGraph(self, graphStates):
-		self.graphStates = graphStates
-		self.columns = len(graphStates)
-		self.columnSizes = [len(graphStates[column]) for column in range(self.columns)]
+	def resizeGraph(self, hiddenStates):
+		self.hiddenStates = hiddenStates
+		self.columns = len(hiddenStates)
+		self.columnSizes = [len(hiddenStates[column]) for column in range(self.columns)]
 		self.g = [None for column in range(self.columns)]
 		for column in range(self.columns):
 			self.g[column] = [None for columnSize in range(self.columnSizes[column])]
@@ -230,15 +228,15 @@ class Graph:
 		self.createDPStructs()
 		# Base case
 		for row in range(self.columnSizes[0]):
-			self.dp[0][row] = logPrior(self.graphStates[0][row])
+			self.dp[0][row] = logPrior(self.hiddenStates[0][row])
 		# Recursive cases
 		for column in range(1,self.columns):
 			for row in range(self.columnSizes[column]):
 				# dp[column][row]
 				for prevRow in range(self.columnSizes[column - 1]):
-					newCost = self.dp[column - 1][prevRow] + self.g[column][row][self.BEFORE][prevRow]
-					if newCost > self.dp[column][row]:
-						self.dp[column][row] = newCost
+					newScore = self.dp[column - 1][prevRow] + self.g[column][row][self.BEFORE][prevRow]
+					if newScore > self.dp[column][row]:
+						self.dp[column][row] = newScore
 						self.prev[column][row] = prevRow
 		# Recover longest paths
 		longestPath = []
@@ -266,7 +264,7 @@ class Graph:
 		res = []
 		for column in range(self.columns):
 			row = longestPath[column]
-			state = self.graphStates[column][row]
+			state = self.hiddenStates[column][row]
 			res.append(state)
 		return res
 		
@@ -279,21 +277,6 @@ def getOutputString(states):
 		stringLevel = state.stringLevel
 		column = state.time
 		tab[stringLevel - 1][column] = str(state.fret)
-	# Agregar '\t|' entre dos frases
-	endPhrase = [False] * n
-	for stateId in range(len(states) - 1):
-		state1 = states[stateId]
-		time = state1.time
-		state2 = states[stateId + 1]
-		if state1.phrase != state2.phrase:
-			endPhrase[time] = True
-	for column in range(n):
-		if endPhrase[column]:
-			for row in range(len(GuitarNote.allowedStrings)):
-				if tab[row][column] is None:
-					tab[row][column] = '\t|'
-				else:
-					tab[row][column] += '\t|'
 	outputStr = ""
 	for row in range(len(GuitarNote.allowedStrings)):
 		outputStr += GuitarNote.allowedStrings[row] + ":\t"
@@ -304,7 +287,7 @@ def getOutputString(states):
 		outputStr += "\n"
 	return outputStr
 
-def getOutputStringHTML(states):
+def getOutputTabHTML(states):
 	n = max([state.time for state in states]) + 1
 	tab = [[None for c in range(n)] for r in range(len(GuitarNote.allowedStrings))]
 	for stateId in range(len(states)):
@@ -312,14 +295,6 @@ def getOutputStringHTML(states):
 		stringLevel = state.stringLevel
 		column = state.time
 		tab[stringLevel - 1][column] = str(state.fret)
-	#~ # Agregar '\t|' entre dos frases
-	endPhrase = [False] * n
-	for stateId in range(len(states) - 1):
-		state1 = states[stateId]
-		time = state1.time
-		state2 = states[stateId + 1]
-		if state1.phrase != state2.phrase:
-			endPhrase[time] = True
 	#~ outputStr = '<table style="width:100%">'
 	outputStr = '<table>'
 	for row in range(len(GuitarNote.allowedStrings)):
@@ -335,11 +310,6 @@ def getOutputStringHTML(states):
 			else:
 				outputStr += '-'
 			outputStr += '</td>'
-			if endPhrase[column]:
-				outputStr += '<td></td>'
-				outputStr += '<td>'
-				outputStr += '|'
-				outputStr += '</td>'
 		outputStr += '</tr>'
 	outputStr += '</table>'
 	return outputStr
@@ -353,23 +323,100 @@ def neatPrint(states,filename = ""):
 	else:
 		print(outputStr)
 
-def autoTab(stringNotes,phrasePenalty,pinkyPenalty):
-	#~ print("Processing stringNotes:\n%s"%stringNotes)
-	Graph.setPenalties(int(phrasePenalty),int(pinkyPenalty))
-	gs = buildGraphStatesFromStringNotes(stringNotes)
-	g = Graph(gs)
-	bestStates = g.bestStates()
-	res = getOutputStringHTML(bestStates)
-	print([str(state) for state in bestStates])
-	#~ print("Returning tab:\n%s"%res)
-	return [res]
+def toMusixtex(states):
+	res = "\setlength\parindent{0pt}\\begin{music}\instrumentnumber{1}\\nobarnumbers\TAB1\setlines1{6}\startpiece"
+	n = max([state.time for state in states]) + 1
+	tab = [[None for c in range(n)] for r in range(len(GuitarNote.allowedStrings))]
+	for stateId in range(len(states)):
+		state = states[stateId]
+		stringLevel = state.stringLevel
+		column = state.time
+		tab[stringLevel - 1][column] = str(state.fret)
+	for t in range(n):
+		notesAtThisTime = "\\notes"
+		for stringLevel in range(1,len(GuitarNote.allowedStrings) + 1):
+			if tab[stringLevel - 1][t] is not None:
+				notesAtThisTime += "\str{" + str(len(GuitarNote.allowedStrings) + 1 - stringLevel) + "}{" + str(tab[stringLevel - 1][t]) + "}"
+		notesAtThisTime += "\en"
+		res += notesAtThisTime
+	res += "\endpiece\end{music}"
+	return res
 
-# Code for local run as when written
-#~ gs = buildGraphStatesFromFilename("tab.txt")
-#~ g = Graph(gs)
-#~ bestStates = g.bestStates()
-#~ print([str(state) for state in bestStates])
-#~ neatPrint(bestStates,"out.txt")
-#~ neatPrint(bestStates)
+def getOutputFingeringHTML(states):
+	n = max([state.time for state in states]) + 1
+	tab = [[None for c in range(n)] for r in range(len(GuitarNote.allowedStrings))]
+	for stateId in range(len(states)):
+		state = states[stateId]
+		stringLevel = state.stringLevel
+		column = state.time
+		tab[stringLevel - 1][column] = str(state.finger)
+	#~ outputStr = '<table style="width:100%">'
+	outputStr = '<table>'
+	for row in range(len(GuitarNote.allowedStrings)):
+		outputStr += '<tr>'
+		outputStr += '<td>'
+		outputStr += GuitarNote.allowedStrings[row] + ":"
+		outputStr += '</td>'
+		for column in range(n):
+			outputStr += '<td></td>'
+			outputStr += '<td>'
+			if tab[row][column] is not None:
+				outputStr += str(tab[row][column])
+			else:
+				outputStr += '-'
+			outputStr += '</td>'
+		outputStr += '</tr>'
+	outputStr += '</table>'
+	return outputStr
+
+def getOutputScoreExplanationHTML(states):
+	n = max([state.time for state in states]) + 1
+	tab = [[None for c in range(n)] for r in range(len(GuitarNote.allowedStrings))]
+	for stateId in range(len(states)):
+		state = states[stateId]
+		stringLevel = state.stringLevel
+		column = state.time
+		if stateId == 0:
+			tab[stringLevel - 1][column] = logPrior(state)
+		else:
+			previousState = states[stateId - 1]
+			tab[stringLevel - 1][column] = computeTransitionLogLikelihood(previousState,state)
+	#~ outputStr = '<table style="width:100%">'
+	outputStr = '<table>'
+	for row in range(len(GuitarNote.allowedStrings)):
+		outputStr += '<tr>'
+		outputStr += '<td>'
+		outputStr += GuitarNote.allowedStrings[row] + ":"
+		outputStr += '</td>'
+		for column in range(n):
+			outputStr += '<td></td>'
+			outputStr += '<td>'
+			if tab[row][column] is not None:
+				outputStr += str(tab[row][column])
+			else:
+				outputStr += '-'
+			outputStr += '</td>'
+		outputStr += '</tr>'
+	outputStr += '</table>'
+	return outputStr
+
+def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIsFretted,wIFPDelta):
+	print("Processing stringGuitarNotes:\n%s"%stringGuitarNotes)
+	# Destroy all input information but the pitch of the notes
+	scoreNotes = convertStringGuitarNotesToScoreNotes(stringGuitarNotes)
+	# Set penalties
+	Graph.setPenalties(Penalties(float(wPinky),float(wIndexFingerPosition),float(wIsFretted),float(wIFPDelta)))
+	# Get DAG nodes
+	hiddenStates = buildHiddenStatesFromScoreNotes(scoreNotes)
+	# Build graph
+	g = Graph(hiddenStates)
+	# Perform inference
+	bestStates = g.bestStates()
+	# Format results
+	tabHTML = getOutputTabHTML(bestStates)
+	fingeringHTML = getOutputFingeringHTML(bestStates)
+	scoreExplanationHTML = getOutputScoreExplanationHTML(bestStates)
+	print(toMusixtex(bestStates))
+	return ["Tab:\n" + tabHTML,"Finger Anotations:\n" + fingeringHTML, 'Score Explanation:\n' + scoreExplanationHTML]
 
 

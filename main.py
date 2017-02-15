@@ -48,22 +48,50 @@ import autoTabber
 class Auto_tabber(Handler):
 	def get(self):
 		self.render("auto_tabber.html",
-					stringNotes = "D7 G5 B5 e5 D6e7 B5 G5 e7 D5e8 B5 G5 e8 D4e2 B3 G2 e2 D3e0 B1 G2 B1 e0 B1 G2 A2G0B0 A0G2B1 A0G2B1",
-					phrasePenalty = "10",
-					pinkyPenalty = "1",
+					stringGuitarNotes = "D7 G5 B5 e5 D6e7 B5 G5 e7 D5e8 B5 G5 e8 D4e2 B3 G2 e2 D3e0 B1 G2 B1 e0 B1 G2 A2G0B0 A0G2B1 A0G2B1",
+					wPinky = "1",
+					wIndexFingerPosition = "0.1",
+					wIsFretted = "1",
+					wIFPDelta = "2",
+					showFingerAnotations = "N",
+					explainScore = "N",
 					message = [""])
 	def post(self):
-		stringNotes = self.request.get("stringNotes")
-		phrasePenalty = self.request.get("phrasePenalty")
-		pinkyPenalty = self.request.get("pinkyPenalty")
-		print("phrasePenalty = %s"%phrasePenalty)
-		print("pinkyPenalty = %s"%pinkyPenalty)
-		message = autoTabber.autoTab(stringNotes,phrasePenalty,pinkyPenalty)
+		stringGuitarNotes = self.request.get("stringGuitarNotes")
+		wPinky = self.request.get("wPinky")
+		wIndexFingerPosition = self.request.get("wIndexFingerPosition")
+		wIsFretted = self.request.get("wIsFretted")
+		wIFPDelta = self.request.get("wIFPDelta")
+		showFingerAnotations = self.request.get("showFingerAnotations")
+		explainScore = self.request.get("explainScore")
+		print("wPinky = %s"%wPinky)
+		print("wIndexFingerPosition = %s"%wIndexFingerPosition)
+		print("wIsFretted = %s"%wIsFretted)
+		print("wIFPDelta = %s"%wIFPDelta)
+		print("showFingerAnotations = %s"%showFingerAnotations)
+		print("explainScore = %s"%explainScore)
+		message = autoTabber.autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIsFretted,wIFPDelta)
+		if showFingerAnotations == "N":
+			message[1] = ""
+		if explainScore == "N":
+			message[2] = ""
 		self.render("auto_tabber.html",
-					stringNotes = stringNotes,
-					phrasePenalty = phrasePenalty,
-					pinkyPenalty = pinkyPenalty,
+					stringGuitarNotes = stringGuitarNotes,
+					wPinky = wPinky,
+					wIndexFingerPosition = wIndexFingerPosition,
+					wIsFretted = wIsFretted,
+					wIFPDelta = wIFPDelta,
+					showFingerAnotations = showFingerAnotations,
+					explainScore = explainScore,
 					message = message)
+					
+######################  AutoTabberSamples ##############################
+
+import autoTabber
+
+class Auto_tabber_samples(Handler):
+	def get(self):
+		self.render("auto_tabber_samples.html")
 
 ######################### /robots.txt ##################################
 
@@ -78,6 +106,7 @@ application = webapp2.WSGIApplication([
     ('/', MainPage),
     ('/olympiad_problem_classifier',Olympiad_problem_classifier),
     ('/auto_tabber',Auto_tabber),
+    ('/auto_tabber_samples',Auto_tabber_samples),
     ('/robots.txt',Robots)
 ], debug=True)
 
