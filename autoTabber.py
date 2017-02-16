@@ -149,9 +149,6 @@ def stateScore(state):
 		badness += Graph.WEIGHT_PINKY
 	# Playing on higher frets has a cost
 	badness += state.indexFingerPosition() * Graph.WEIGHT_INDEX_FINGER_POSITION
-	# Open strings are easier to play
-	if state.fret != 0:
-		badness += Graph.WEIGHT_IS_FRETTED
 	return -badness
 
 def logPrior(state):
@@ -171,17 +168,15 @@ def computeTransitionLogLikelihood(state1, state2):
 	return score
 
 class Penalties:
-	def __init__(self,wPinky = 1,wIndexFingerPosition = 0.1,wIsFretted = 1,wIFPDelta = 2):
+	def __init__(self,wPinky = 1,wIndexFingerPosition = 0.1,wIFPDelta = 2):
 		self.wPinky = wPinky
 		self.wIndexFingerPosition = wIndexFingerPosition
-		self.wIsFretted = wIsFretted
 		self.wIFPDelta = wIFPDelta
 		
 class Graph:
 	# Global parameters
 	WEIGHT_PINKY = 0
 	WEIGHT_INDEX_FINGER_POSITION = 0
-	WEIGHT_IS_FRETTED = 0
 	WEIGHT_IFP_DELTA = 0
 	BEFORE = 0
 	AFTER = 1
@@ -192,8 +187,6 @@ class Graph:
 			cls.WEIGHT_PINKY = penalties.wPinky
 		if hasattr(penalties, 'wIndexFingerPosition'):
 			cls.WEIGHT_INDEX_FINGER_POSITION = penalties.wIndexFingerPosition
-		if hasattr(penalties, 'wIsFretted'):
-			cls.WEIGHT_IS_FRETTED = penalties.wIsFretted
 		if hasattr(penalties, 'wIFPDelta'):
 			cls.WEIGHT_IFP_DELTA = penalties.wIFPDelta
 	def __init__(self, hiddenStates):
@@ -400,12 +393,12 @@ def getOutputScoreExplanationHTML(states):
 	outputStr += '</table>'
 	return outputStr
 
-def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIsFretted,wIFPDelta):
+def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIFPDelta):
 	print("Processing stringGuitarNotes:\n%s"%stringGuitarNotes)
 	# Destroy all input information but the pitch of the notes
 	scoreNotes = convertStringGuitarNotesToScoreNotes(stringGuitarNotes)
 	# Set penalties
-	Graph.setPenalties(Penalties(float(wPinky),float(wIndexFingerPosition),float(wIsFretted),float(wIFPDelta)))
+	Graph.setPenalties(Penalties(float(wPinky),float(wIndexFingerPosition),float(wIFPDelta)))
 	# Get DAG nodes
 	hiddenStates = buildHiddenStatesFromScoreNotes(scoreNotes)
 	# Build graph
