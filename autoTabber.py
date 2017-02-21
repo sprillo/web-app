@@ -94,6 +94,8 @@ class GuitarNote:
 		return str(self.stringLevel[self.string]) + "_" + str(self.fret)
 	def getPitch(self):
 		return GuitarNote.notePitch[self.string] + self.fret
+	def getStringLevel(self):
+		return GuitarNote.stringLevel[self.string]
 
 class State:
 	def __init__(self, stringString, fret, finger, time):
@@ -136,9 +138,13 @@ def buildHiddenStatesFromScoreNotes(scoreNotes):
 		hiddenStates.append(compatibleStates)
 	return hiddenStates
 
-def convertStringGuitarNotesToScoreNotes(stringGuitarNotes):
+def convertStringGuitarNotesToGuitarNotes(stringGuitarNotes):
 	c = NoteFormatConverter()
 	guitarNotes = c.string_To_GuitarNotes(stringGuitarNotes)
+	return guitarNotes
+
+def convertStringGuitarNotesToScoreNotes(stringGuitarNotes):
+	guitarNotes = convertStringGuitarNotesToGuitarNotes(stringGuitarNotes)
 	scoreNotes = [ScoreNote.fromGuitarNote(guitarNote) for guitarNote in guitarNotes]
 	return scoreNotes
 
@@ -393,6 +399,18 @@ def getOutputScoreExplanationHTML(states):
 	outputStr += '</table>'
 	return outputStr
 
+def calcAccuracy(guitarNotes,states):
+	assert(len(guitarNotes) == len(states))
+	assert(len(guitarNotes) > 0)
+	N = len(guitarNotes)
+	correct = 0
+	for i in range(N):
+		guitarNote = guitarNotes[i]
+		state = states[i]
+		if guitarNote.getStringLevel() == state.stringLevel and guitarNote.fret == state.fret:
+			correct += 1
+	return correct * 100 / N
+
 def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIFPDelta):
 	print("Processing stringGuitarNotes:\n%s"%stringGuitarNotes)
 	# Destroy all input information but the pitch of the notes
@@ -405,11 +423,14 @@ def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIFPDelta):
 	g = Graph(hiddenStates)
 	# Perform inference
 	bestStates = g.bestStates()
+	# Compute number of correct notes
+	guitarNotes = convertStringGuitarNotesToGuitarNotes(stringGuitarNotes)
+	accuracy = calcAccuracy(guitarNotes,bestStates)
 	# Format results
 	tabHTML = getOutputTabHTML(bestStates)
 	fingeringHTML = getOutputFingeringHTML(bestStates)
 	scoreExplanationHTML = getOutputScoreExplanationHTML(bestStates)
 	print(toMusixtex(bestStates))
-	return ["Tab:\n" + tabHTML,"Finger Anotations:\n" + fingeringHTML, 'Score Explanation:\n' + scoreExplanationHTML]
+	return ["Tab: (I got %i%% of the input tab correctly)\n"%accuracy + tabHTML,"Finger Anotations:\n" + fingeringHTML, 'Score Explanation:\n' + scoreExplanationHTML]
 
 
