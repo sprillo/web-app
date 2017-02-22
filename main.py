@@ -52,7 +52,7 @@ class Auto_tabber(Handler):
 					wPinky = "1",
 					wIndexFingerPosition = "0.1",
 					wIFPDelta = "2",
-					showFingerAnotations = "N",
+					showFingerAnnotations = "N",
 					explainScore = "N",
 					message = [""])
 	def post(self):
@@ -60,15 +60,15 @@ class Auto_tabber(Handler):
 		wPinky = self.request.get("wPinky")
 		wIndexFingerPosition = self.request.get("wIndexFingerPosition")
 		wIFPDelta = self.request.get("wIFPDelta")
-		showFingerAnotations = self.request.get("showFingerAnotations")
+		showFingerAnnotations = self.request.get("showFingerAnnotations")
 		explainScore = self.request.get("explainScore")
 		print("wPinky = %s"%wPinky)
 		print("wIndexFingerPosition = %s"%wIndexFingerPosition)
 		print("wIFPDelta = %s"%wIFPDelta)
-		print("showFingerAnotations = %s"%showFingerAnotations)
+		print("showFingerAnnotations = %s"%showFingerAnnotations)
 		print("explainScore = %s"%explainScore)
 		message = autoTabber.autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIFPDelta)
-		if showFingerAnotations == "N":
+		if showFingerAnnotations == "N":
 			message[1] = ""
 		if explainScore == "N":
 			message[2] = ""
@@ -77,7 +77,7 @@ class Auto_tabber(Handler):
 					wPinky = wPinky,
 					wIndexFingerPosition = wIndexFingerPosition,
 					wIFPDelta = wIFPDelta,
-					showFingerAnotations = showFingerAnotations,
+					showFingerAnnotations = showFingerAnnotations,
 					explainScore = explainScore,
 					message = message)
 					

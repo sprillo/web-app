@@ -431,6 +431,6 @@ def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIFPDelta):
 	fingeringHTML = getOutputFingeringHTML(bestStates)
 	scoreExplanationHTML = getOutputScoreExplanationHTML(bestStates)
 	print(toMusixtex(bestStates))
-	return ["Tab: (I got %i%% of the input tab correctly)\n"%accuracy + tabHTML,"Finger Anotations:\n" + fingeringHTML, 'Score Explanation:\n' + scoreExplanationHTML]
+	return ["Tab: (I got %i%% of the input tab correctly)\n"%accuracy + tabHTML,"Finger Annotations:\n" + fingeringHTML, 'Score Explanation:\n' + scoreExplanationHTML]
 
 
