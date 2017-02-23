@@ -114,6 +114,7 @@ def sameIndexFingerPosition(state1,state2):
 	return state1.indexFingerPosition() == state2.indexFingerPosition()
 	
 def calculateCompatibleStates(scoreNote):
+	# Complexity: O(S x H)
 	res = []
 	for string in GuitarNote.allowedStrings:
 		fret = scoreNote.pitch - GuitarNote.notePitch[string]
@@ -149,6 +150,7 @@ def convertStringGuitarNotesToScoreNotes(stringGuitarNotes):
 	return scoreNotes
 
 def stateScore(state):
+	# Complexity: O(1)
 	badness = 0
 	# Using the pinky has a cost.
 	if state.finger == 4:
@@ -158,9 +160,11 @@ def stateScore(state):
 	return -badness
 
 def logPrior(state):
+	# Complexity: O(1)
 	return stateScore(state)
 
 def moveScore(s1,s2):
+	# Complexity: O(1)
 	badness = 0
 	# same time => strings played bottom-up
 	if s1.time == s2.time and s1.stringLevel <= s2.stringLevel:
@@ -170,6 +174,7 @@ def moveScore(s1,s2):
 	return -badness
 
 def computeTransitionLogLikelihood(state1, state2):
+	# Complexity: O(1)
 	score = moveScore(state1,state2) + stateScore(state2)
 	return score
 
@@ -196,6 +201,7 @@ class Graph:
 		if hasattr(penalties, 'wIFPDelta'):
 			cls.WEIGHT_IFP_DELTA = penalties.wIFPDelta
 	def __init__(self, hiddenStates):
+		# Complexity: O(M x S^2 x H^2)
 		self.hiddenStates = hiddenStates
 		self.resizeGraph(hiddenStates)
 		for column in range(self.columns - 1):
@@ -206,6 +212,7 @@ class Graph:
 					self.g[column][rowBefore][self.AFTER][rowAfter] = transitionLogLikelihood
 					self.g[column + 1][rowAfter][self.BEFORE][rowBefore] = transitionLogLikelihood
 	def resizeGraph(self, hiddenStates):
+		# Complexity: O(M x S^2 x H^2)
 		self.hiddenStates = hiddenStates
 		self.columns = len(hiddenStates)
 		self.columnSizes = [len(hiddenStates[column]) for column in range(self.columns)]
@@ -218,12 +225,14 @@ class Graph:
 					if 0 <= column + self.val(direction) and column + self.val(direction) < self.columns:
 						self.g[column][row][direction] = [0 for neighbour in range(self.columnSizes[column + self.val(direction)])]
 	def val(self, direction):
+		# Complexity: O(1)
 		if direction == self.BEFORE:
 			return -1
 		if direction == self.AFTER:
 			return 1
 		assert(False)
 	def longestPath(self):
+		# Complexity: O(M x S^2 x H^2)
 		self.createDPStructs()
 		# Base case
 		for row in range(self.columnSizes[0]):
@@ -252,12 +261,14 @@ class Graph:
 		longestPath = longestPath[::-1]
 		return longestPath
 	def createDPStructs(self):
+		# Complexity: O(M x S x H)
 		self.dp = [None for column in range(self.columns)]
 		self.prev = [None for column in range(self.columns)]
 		for column in range(self.columns):
 			self.dp[column] = [-self.INF for row in range(self.columnSizes[column])]
 			self.prev[column] = [-1 for row in range(self.columnSizes[column])]
-	def bestStates(self):
+	def mostLikelyExplanation(self):
+		# Complexity: O(M x S^2 x H^2)
 		longestPath = self.longestPath()
 		assert len(longestPath) == self.columns
 		res = []
@@ -422,15 +433,15 @@ def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIFPDelta):
 	# Build graph
 	g = Graph(hiddenStates)
 	# Perform inference
-	bestStates = g.bestStates()
+	mostLikelyExplanation = g.mostLikelyExplanation()
 	# Compute number of correct notes
 	guitarNotes = convertStringGuitarNotesToGuitarNotes(stringGuitarNotes)
-	accuracy = calcAccuracy(guitarNotes,bestStates)
+	accuracy = calcAccuracy(guitarNotes,mostLikelyExplanation)
 	# Format results
-	tabHTML = getOutputTabHTML(bestStates)
-	fingeringHTML = getOutputFingeringHTML(bestStates)
-	scoreExplanationHTML = getOutputScoreExplanationHTML(bestStates)
-	print(toMusixtex(bestStates))
+	tabHTML = getOutputTabHTML(mostLikelyExplanation)
+	fingeringHTML = getOutputFingeringHTML(mostLikelyExplanation)
+	scoreExplanationHTML = getOutputScoreExplanationHTML(mostLikelyExplanation)
+	print(toMusixtex(mostLikelyExplanation))
 	return ["Tab: (I got %i%% of the input tab correctly)\n"%accuracy + tabHTML,"Finger Annotations:\n" + fingeringHTML, 'Score Explanation:\n' + scoreExplanationHTML]
 
 
