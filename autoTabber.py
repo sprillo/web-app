@@ -3,7 +3,7 @@ from math import *
 class NoteFormatConverter:
 	def __init__(self):
 		pass
-	def filename_GuitarNotes_To_ScoreNotes(self, filename):
+	def filenameGuitarNotesToScoreNotes(self, filename):
 		f = open(filename)
 		content = ""
 		for line in f:
@@ -11,10 +11,10 @@ class NoteFormatConverter:
 		content = content.replace('\t',' ')
 		content = content.replace('\n','')
 		f.close()
-		guitarNotes = self.string_To_GuitarNotes(content)
+		guitarNotes = self.stringToGuitarNotes(content)
 		scoreNotes = [ScoreNote.fromGuitarNote(guitarNote) for guitarNote in guitarNotes]
 		return scoreNotes
-	def string_To_GuitarNotes(self, string):
+	def stringToGuitarNotes(self, string):
 		res = []
 		stringGuitarNotes = string.rstrip().split(" ")
 		for time in range(len(stringGuitarNotes)):
@@ -127,7 +127,7 @@ def calculateCompatibleStates(scoreNote):
 
 def buildHiddenStatesFromFilename(filename):
 	c = NoteFormatConverter()
-	scoreNotes = c.filename_GuitarNotes_To_ScoreNotes(filename)
+	scoreNotes = c.filenameGuitarNotesToScoreNotes(filename)
 	hiddenStates = buildHiddenStatesFromScoreNotes(scoreNotes)
 	return hiddenStates
 
@@ -141,7 +141,7 @@ def buildHiddenStatesFromScoreNotes(scoreNotes):
 
 def convertStringGuitarNotesToGuitarNotes(stringGuitarNotes):
 	c = NoteFormatConverter()
-	guitarNotes = c.string_To_GuitarNotes(stringGuitarNotes)
+	guitarNotes = c.stringToGuitarNotes(stringGuitarNotes)
 	return guitarNotes
 
 def convertStringGuitarNotesToScoreNotes(stringGuitarNotes):
@@ -311,16 +311,8 @@ def getOutputTabHTML(states):
 	outputStr += '</table>'
 	return outputStr
 
-def neatPrint(states,filename = ""):
-	outputStr = getOutputString(states)
-	if filename != "":
-		f = open(filename,'w')
-		f.write(outputStr)
-		f.close()
-	else:
-		print(outputStr)
-
 def toMusixtex(states):
+	# For latex
 	res = "\setlength\parindent{0pt}\\begin{music}\instrumentnumber{1}\\nobarnumbers\TAB1\setlines1{6}\startpiece"
 	n = max([state.time for state in states]) + 1
 	tab = [[None for c in range(n)] for r in range(len(GuitarNote.allowedStrings))]
@@ -411,7 +403,7 @@ def calcAccuracy(guitarNotes,states):
 
 def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIFPDelta):
 	print("Processing stringGuitarNotes:\n%s"%stringGuitarNotes)
-	# Destroy all input information but the pitch of the notes
+	# Keep only the pitch of the input notes (when several notes are played simultaneously, sort them by pitch)
 	scoreNotes = convertStringGuitarNotesToScoreNotes(stringGuitarNotes)
 	# Set penalties
 	Graph.setPenalties(Penalties(float(wPinky),float(wIndexFingerPosition),float(wIFPDelta)))
@@ -419,7 +411,7 @@ def autoTab(stringGuitarNotes,wPinky,wIndexFingerPosition,wIFPDelta):
 	hiddenStates = buildHiddenStatesFromScoreNotes(scoreNotes)
 	# Build graph
 	g = Graph(hiddenStates)
-	# Perform inference
+	# Compute MLE
 	mostLikelyExplanation = g.mostLikelyExplanation()
 	# Compute number of correct notes
 	guitarNotes = convertStringGuitarNotesToGuitarNotes(stringGuitarNotes)
