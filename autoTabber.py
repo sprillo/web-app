@@ -189,8 +189,6 @@ class Graph:
 	WEIGHT_PINKY = 0
 	WEIGHT_INDEX_FINGER_POSITION = 0
 	WEIGHT_IFP_DELTA = 0
-	BEFORE = 0
-	AFTER = 1
 	INF = 100000000
 	@classmethod
 	def setPenalties(cls,penalties):
@@ -209,28 +207,17 @@ class Graph:
 			for rowBefore in range(self.columnSizes[column]):
 				for rowAfter in range(self.columnSizes[column + 1]):
 					transitionLogLikelihood = computeTransitionLogLikelihood(self.hiddenStates[column][rowBefore],self.hiddenStates[column + 1][rowAfter])
-					self.g[column][rowBefore][self.AFTER][rowAfter] = transitionLogLikelihood
-					self.g[column + 1][rowAfter][self.BEFORE][rowBefore] = transitionLogLikelihood
+					self.g[column + 1][rowAfter][rowBefore] = transitionLogLikelihood
 	def resizeGraph(self, hiddenStates):
 		# Complexity: O(M x S^2 x H^2)
 		self.hiddenStates = hiddenStates
 		self.columns = len(hiddenStates)
 		self.columnSizes = [len(hiddenStates[column]) for column in range(self.columns)]
 		self.g = [None for column in range(self.columns)]
-		for column in range(self.columns):
+		for column in range(1,self.columns):
 			self.g[column] = [None for columnSize in range(self.columnSizes[column])]
 			for row in range(self.columnSizes[column]):
-				self.g[column][row] = [None for direction in [self.BEFORE,self.AFTER]]
-				for direction in [self.BEFORE,self.AFTER]:
-					if 0 <= column + self.val(direction) and column + self.val(direction) < self.columns:
-						self.g[column][row][direction] = [0 for neighbour in range(self.columnSizes[column + self.val(direction)])]
-	def val(self, direction):
-		# Complexity: O(1)
-		if direction == self.BEFORE:
-			return -1
-		if direction == self.AFTER:
-			return 1
-		assert(False)
+					self.g[column][row] = [0 for neighbour in range(self.columnSizes[column - 1])]
 	def longestPath(self):
 		# Complexity: O(M x S^2 x H^2)
 		self.createDPStructs()
@@ -242,7 +229,7 @@ class Graph:
 			for row in range(self.columnSizes[column]):
 				# dp[column][row]
 				for prevRow in range(self.columnSizes[column - 1]):
-					newScore = self.dp[column - 1][prevRow] + self.g[column][row][self.BEFORE][prevRow]
+					newScore = self.dp[column - 1][prevRow] + self.g[column][row][prevRow]
 					if newScore > self.dp[column][row]:
 						self.dp[column][row] = newScore
 						self.prev[column][row] = prevRow
